@@ -1,0 +1,9 @@
+go 1.21.3
+
+use (
+	./go-device-backend
+	./go-device-backend/schema
+	./go-user-backend
+	./go-user-backend/schema
+	./go-user-backend/userActions
+)

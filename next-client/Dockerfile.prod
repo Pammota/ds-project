@@ -1,0 +1,22 @@
+#Development Stage
+FROM node:18-alpine as DEVELOPMENT
+
+RUN mkdir -p /app
+WORKDIR /app
+
+# Copy package.json and package-lock.json for npm install
+COPY package*.json /app
+
+# Install project dependencies for development
+RUN npm install
+
+COPY . /app
+RUN npm run build
+
+# Copy the rest of the source code
+
+# Expose the port for the development server
+EXPOSE 3000
+
+# Start the development server with hot module replacement (HMR)
+CMD ["npm", "start"]

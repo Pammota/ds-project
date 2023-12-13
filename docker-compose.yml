@@ -1,0 +1,156 @@
+version: "3.8"
+
+networks:
+  usersnet:
+    driver: bridge
+  devicesnet:
+    driver: bridge
+  measurementsnet:
+    driver: bridge
+  rabbitmq_net:
+    driver: bridge
+
+services:
+  next-client:
+    build:
+      context: ./next-client
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ./next-client/:/app
+      - /app/node_modules
+      - /app/.next
+    ports:
+      - "3000:3000"
+    networks:
+      - usersnet
+      - devicesnet
+    depends_on:
+      - go-user-backend
+      - go-device-backend
+
+  go-user-backend:
+    build:
+      context: ./go-user-backend
+    environment:
+      PG_HOST: go-db-users
+      PG_USER: go_user_user
+      PG_PASSWORD: go_user_pass
+      PG_DBNAME: go_user_db
+      PG_PORT: 5433
+    networks:
+      - usersnet
+    ports:
+      - "8080:8080"
+    depends_on:
+      - go-db-users
+
+  go-device-backend:
+    build:
+      context: ./go-device-backend
+    environment:
+      PG_HOST: go-db-devices
+      PG_USER: go_device_user
+      PG_PASSWORD: go_device_pass
+      PG_DBNAME: go_device_db
+      PG_PORT: 5434
+    networks:
+      - devicesnet
+    ports:
+      - "8081:8081"
+    depends_on:
+      - go-db-devices
+
+  go-measurement-backend:
+    build:
+      context: ./go-measurement-backend
+    environment:
+      # Postgres
+      PG_HOST: go-db-measurements
+      PG_USER: go_measurement_user
+      PG_PASSWORD: go_measurement_pass
+      PG_DBNAME: go_measurement_db
+      PG_PORT: 5435
+      # RabbitMQ
+      RABBITMQ_USER: guest
+      RABBITMQ_PASSWORD: guest
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+    networks:
+      - measurementsnet
+      - rabbitmq_net
+    ports:
+      - "8082:8082"
+    depends_on:
+      - go-db-measurements
+
+  go-db-users:
+    image: postgres:latest
+    ports:
+      - "5433:5433"
+    environment:
+      POSTGRES_DB: go_user_db
+      POSTGRES_USER: go_user_user
+      POSTGRES_PASSWORD: go_user_pass
+      PGPORT: 5433
+    networks:
+      - usersnet
+    # network_mode: bridge
+    volumes:
+      - postgres-user-data:/var/lib/postgresql/data
+      # - ./postgres_scripts/users.sql:/docker-entrypoint-initdb.d/init.sql
+
+  go-db-devices:
+    image: postgres:latest
+    ports:
+      - "5434:5434"
+    environment:
+      POSTGRES_DB: go_device_db
+      POSTGRES_USER: go_device_user
+      POSTGRES_PASSWORD: go_device_pass
+      PGPORT: 5434
+    networks:
+      - devicesnet
+    volumes:
+      - postgres-device-data:/var/lib/postgresql/data
+      # - ./postgres_scripts/devices.sql:/docker-entrypoint-initdb.d/init.sql
+
+  go-db-measurements:
+    image: postgres:latest
+    ports:
+      - "5435:5435"
+    environment:
+      POSTGRES_DB: go_measurement_db
+      POSTGRES_USER: go_measurement_user
+      POSTGRES_PASSWORD: go_measurement_pass
+      PGPORT: 5435
+    networks:
+      - measurementsnet
+    volumes:
+      - postgres-measurement-data:/var/lib/postgresql/data
+      # - ./postgres_scripts/measurements.sql:/docker-entrypoint-initdb.d/init.sql
+  
+  rabbitmq:
+    image: rabbitmq:3.12-management-alpine
+    container_name: 'rabbitmq'
+    ports:
+        - 5672:5672
+        - 15672:15672
+    volumes:
+        - ~/.docker-conf/rabbitmq/data/:/var/lib/rabbitmq/
+        - ~/.docker-conf/rabbitmq/log/:/var/log/rabbitmq
+    networks:
+        - rabbitmq_net
+
+  node-device-simulator:
+    build:
+      context: ./node-device-simulator
+    ports:
+      - 4000:4000
+    networks:
+      - rabbitmq_net
+
+
+volumes:
+  postgres-user-data:
+  postgres-device-data:
+  postgres-measurement-data:

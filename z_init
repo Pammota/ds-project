@@ -1,0 +1,9 @@
+#!/bin/bash
+
+for filename in z_scripts/*; do
+    scriptname=${filename#*"/"}
+    # echo "$scriptname $filename"
+    alias $scriptname="sh $filename"
+done
+
+
