@@ -1,7 +1,12 @@
 import React, { useEffect, useState } from "react";
 
 import { User } from "@/types";
-import { useDevicesStore, useStore, useUsersStore } from "@/stores";
+import {
+  useDevicesStore,
+  useStore,
+  useUserStore,
+  useUsersStore,
+} from "@/stores";
 import Modal from "@/components/shared/Modal";
 import { createUser, deleteUser, updateDevice, updateUser } from "@/fetchers";
 
@@ -14,6 +19,7 @@ const thClasses =
 
 const UsersTable = ({ users }: Props) => {
   const { fetchUsers } = useUsersStore();
+  const token = useStore(useUserStore, (state) => state.token);
 
   const [selectedUser, setSelectedUser] = useState<string>();
   const [modalOpen, setModalOpen] = useState(false);
@@ -33,7 +39,9 @@ const UsersTable = ({ users }: Props) => {
 
   useEffect(() => {
     fetchDevices();
-  }, [fetchDevices]);
+  }, [fetchDevices, token]);
+
+  console.log(token);
 
   return (
     <div className="flex flex-col gap-4 justify-center items-center">
@@ -43,7 +51,7 @@ const UsersTable = ({ users }: Props) => {
           onSubmit={(e) => {
             e.preventDefault();
             if (selectedUser) {
-              updateUser(newUser);
+              updateUser(newUser, token ?? "");
               setModalOpen(false);
               setTimeout(() => {
                 fetchUsers();
@@ -51,7 +59,7 @@ const UsersTable = ({ users }: Props) => {
             } else {
               let userNew = { ...newUser };
               delete userNew.UserID;
-              createUser(userNew);
+              createUser(userNew, token ?? "");
               setModalOpen(false);
               setTimeout(() => {
                 fetchUsers();
@@ -146,12 +154,12 @@ const UsersTable = ({ users }: Props) => {
               <button
                 type="button"
                 onClick={() => {
-                  deleteUser(selectedUser ?? "");
+                  deleteUser(selectedUser ?? "", token ??"");
                   const userDevices = devices?.filter(
                     (device) => device.UserID === selectedUser
-                  );
+                  ) ?? [];
                   userDevices?.forEach((device) => {
-                    updateDevice({ ...device, UserID: "" });
+                    updateDevice({ ...device, UserID: "" }, token ??"");
                   });
                   setModalOpen(false);
                   setTimeout(() => {
@@ -177,7 +185,7 @@ const UsersTable = ({ users }: Props) => {
           </tr>
         </thead>
         <tbody className="text-sm font-light">
-          {users.map((user) => (
+          {users?.length > 0 && users?.map((user) => (
             <tr
               key={user.Username}
               className="border-b-2 border-gray-400 dark:border-gray-200 hover:bg-blue-300/30 select-none cursor-pointer"

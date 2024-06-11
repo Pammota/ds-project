@@ -3,6 +3,7 @@ package userActions
 import (
 	// standard libs
 	"net/http"
+	"strings"
 
 	// external libs
 	"github.com/gin-gonic/gin"
@@ -18,11 +19,83 @@ import (
 type User = schemaUsers.User
 type UserResponse = schemaUsers.UserResponse
 type Response = schemaUsers.Response
+type ValidToken = schemaUsers.ValidToken
+
+func CreateValidToken(db *gorm.DB) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		var validToken ValidToken
+		c.BindJSON(&validToken)
+
+		validToken.Token = uuid.New().String()
+
+		err := db.Create(&validToken).Error
+		if err != nil {
+			response := &Response{Status: http.StatusBadRequest, TextStatus: err.Error()}
+			c.AbortWithStatusJSON(http.StatusBadRequest, response)
+			return
+		} else {
+			response := &Response{Status: http.StatusCreated, TextStatus: "ValidToken created successfully"}
+			c.JSON(http.StatusCreated, response)
+		}
+	}
+}
+
+func GetValidTokens(db *gorm.DB) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		var validTokens []ValidToken
+
+		db.Find(&validTokens)
+		c.JSON(http.StatusOK, validTokens)
+	}
+}
+
+func DeleteValidToken(db *gorm.DB) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		var validToken ValidToken
+		token := c.Param("token")
+
+		db.Where("token = ?", token).First(&validToken)
+		if validToken.Token == "" {
+			response := &Response{Status: http.StatusNotFound, TextStatus: "No valid token found"}
+			c.JSON(http.StatusNotFound, response)
+			return
+		}
+
+		db.Delete(&validToken)
+		response := &Response{Status: http.StatusOK, TextStatus: "ValidToken deleted successfully"}
+		c.JSON(http.StatusOK, response)
+	}
+}
+
+func CheckTokenValidity(db *gorm.DB) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		token := c.Param("token")
+		var validToken ValidToken
+		db.Where("token = ?", token).First(&validToken)
+		if validToken.Token == "" {
+			response := map[string]bool{"isTokenValid": false}
+			c.JSON(http.StatusOK, response)
+			return
+		}
+
+		response := map[string]bool{"isTokenValid": true}
+		c.JSON(http.StatusOK, response)
+	}
+}
 
 func GetUsers(db *gorm.DB) func(c *gin.Context) {
 	return func(c *gin.Context) {
-		var users []User
+		authHeader := c.GetHeader("Authorization")
+		token := strings.TrimPrefix(authHeader, "Bearer ")
+		var validToken ValidToken
+		db.Where("token = ?", token).First(&validToken)
+		if validToken.Token == "" {
+			response := &Response{Status: http.StatusUnauthorized, TextStatus: "Invalid token"}
+			c.JSON(http.StatusUnauthorized, response)
+			return
+		}
 
+		var users []User
 		db.Find(&users)
 		c.JSON(http.StatusOK, users)
 	}
@@ -30,6 +103,16 @@ func GetUsers(db *gorm.DB) func(c *gin.Context) {
 
 func CreateUser(db *gorm.DB) func(c *gin.Context) {
 	return func(c *gin.Context) {
+		authHeader := c.GetHeader("Authorization")
+		token := strings.TrimPrefix(authHeader, "Bearer ")
+		var validToken ValidToken
+		db.Where("token = ?", token).First(&validToken)
+		if validToken.Token == "" {
+			response := &Response{Status: http.StatusUnauthorized, TextStatus: "Invalid token"}
+			c.JSON(http.StatusUnauthorized, response)
+			return
+		}
+
 		var user User
 		c.BindJSON(&user)
 
@@ -49,6 +132,16 @@ func CreateUser(db *gorm.DB) func(c *gin.Context) {
 
 func UpdateUser(db *gorm.DB) func(c *gin.Context) {
 	return func(c *gin.Context) {
+		authHeader := c.GetHeader("Authorization")
+		token := strings.TrimPrefix(authHeader, "Bearer ")
+		var validToken ValidToken
+		db.Where("token = ?", token).First(&validToken)
+		if validToken.Token == "" {
+			response := &Response{Status: http.StatusUnauthorized, TextStatus: "Invalid token"}
+			c.JSON(http.StatusUnauthorized, response)
+			return
+		}
+
 		var user User
 		c.BindJSON(&user)
 
@@ -69,6 +162,16 @@ func UpdateUser(db *gorm.DB) func(c *gin.Context) {
 
 func GetUser(db *gorm.DB) func(c *gin.Context) {
 	return func(c *gin.Context) {
+		authHeader := c.GetHeader("Authorization")
+		token := strings.TrimPrefix(authHeader, "Bearer ")
+		var validToken ValidToken
+		db.Where("token = ?", token).First(&validToken)
+		if validToken.Token == "" {
+			response := &Response{Status: http.StatusUnauthorized, TextStatus: "Invalid token"}
+			c.JSON(http.StatusUnauthorized, response)
+			return
+		}
+
 		UserID := c.Params.ByName("uid")
 		var user User
 		err := db.Where("user_id = ?", UserID).First(&user).Error
@@ -84,6 +187,16 @@ func GetUser(db *gorm.DB) func(c *gin.Context) {
 
 func DeleteUser(db *gorm.DB) func(c *gin.Context) {
 	return func(c *gin.Context) {
+		authHeader := c.GetHeader("Authorization")
+		token := strings.TrimPrefix(authHeader, "Bearer ")
+		var validToken ValidToken
+		db.Where("token = ?", token).First(&validToken)
+		if validToken.Token == "" {
+			response := &Response{Status: http.StatusUnauthorized, TextStatus: "Invalid token"}
+			c.JSON(http.StatusUnauthorized, response)
+			return
+		}
+
 		UserID := c.Params.ByName("uid")
 
 		err := db.Where("user_id = ?", UserID).Delete(&User{}).Error
@@ -97,96 +210,6 @@ func DeleteUser(db *gorm.DB) func(c *gin.Context) {
 		}
 	}
 }
-
-// func Login(db *gorm.DB) func(c *gin.Context) {
-// 	return func(c *gin.Context) {
-// 		var user struct {
-// 			Username string `json:"username"`
-// 			Password string `json:"password"`
-// 		}
-// 		if err := c.BindJSON(&user); err != nil {
-// 			response := &Response{Status: http.StatusBadRequest, TextStatus: "Invalid request body"}
-// 			c.AbortWithStatusJSON(http.StatusBadRequest, response)
-// 			return
-// 		}
-
-// 		var dbUser User
-// 		err := db.Where("username = ?", user.Username).First(&dbUser).Error
-// 		if err != nil {
-// 			response := &Response{Status: http.StatusBadRequest, TextStatus: "Invalid username or password"}
-// 			c.AbortWithStatusJSON(http.StatusBadRequest, response)
-// 			return
-// 		}
-
-// 		// Compare the provided password with the hashed password in the database
-// 		err = bcrypt.CompareHashAndPassword([]byte(dbUser.Password), []byte(user.Password))
-// 		if err != nil {
-// 			response := &Response{Status: http.StatusBadRequest, TextStatus: "Invalid username or password"}
-// 			c.AbortWithStatusJSON(http.StatusBadRequest, response)
-// 			return
-// 		}
-
-// 		// Create a UserResponse struct and copy the fields from the User struct
-// 		userResponse := UserResponse{
-// 			UserID:    dbUser.UserID,
-// 			FirstName: dbUser.FirstName,
-// 			LastName:  dbUser.LastName,
-// 			Username:  dbUser.Username,
-// 			Email:     dbUser.Email,
-// 			Roles:     dbUser.Roles,
-// 		}
-
-// 		token := uuid.New().String()
-// 		response := &Response{Status: http.StatusOK, TextStatus: "Login successful", Data: struct {
-// 			Token string       `json:"token"`
-// 			User  UserResponse `json:"user"`
-// 		}{Token: token, User: userResponse}}
-// 		c.JSON(http.StatusOK, response)
-// 	}
-// }
-
-// func Register(db *gorm.DB) func(c *gin.Context) {
-// 	return func(c *gin.Context) {
-// 		var user User
-// 		if err := c.BindJSON(&user); err != nil {
-// 			response := &Response{Status: http.StatusBadRequest, TextStatus: "Invalid request body"}
-// 			c.AbortWithStatusJSON(http.StatusBadRequest, response)
-// 			return
-// 		}
-
-// 		// Generate a new UUID for user_id
-// 		user.UserID = uuid.New().String()
-
-// 		// Hash the password before storing it in the database
-// 		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
-// 		if err != nil {
-// 			response := &Response{Status: http.StatusInternalServerError, TextStatus: "Error hashing password"}
-// 			c.AbortWithStatusJSON(http.StatusInternalServerError, response)
-// 			return
-// 		}
-// 		user.Password = string(hashedPassword)
-
-// 		err = db.Create(&user).Error
-// 		if err != nil {
-// 			response := &Response{Status: http.StatusBadRequest, TextStatus: err.Error()}
-// 			c.AbortWithStatusJSON(http.StatusBadRequest, response)
-// 			return
-// 		}
-
-// 		// Create a UserResponse struct and copy the fields from the User struct
-// 		userResponse := UserResponse{
-// 			UserID:    user.UserID,
-// 			FirstName: user.FirstName,
-// 			LastName:  user.LastName,
-// 			Username:  user.Username,
-// 			Email:     user.Email,
-// 			Roles:     user.Roles,
-// 		}
-
-// 		response := &Response{Status: http.StatusCreated, TextStatus: "Registration successful", Data: userResponse}
-// 		c.JSON(http.StatusCreated, response)
-// 	}
-// }
 
 func Login(db *gorm.DB) func(c *gin.Context) {
 	return func(c *gin.Context) {
@@ -208,6 +231,15 @@ func Login(db *gorm.DB) func(c *gin.Context) {
 			return
 		} else {
 			token := uuid.New().String()
+
+			validToken := ValidToken{Token: token}
+			err = db.Create(&validToken).Error
+			if err != nil {
+				response := &Response{Status: http.StatusInternalServerError, TextStatus: "Error storing token"}
+				c.AbortWithStatusJSON(http.StatusInternalServerError, response)
+				return
+			}
+
 			response := &Response{Status: http.StatusOK, TextStatus: "Login successful", Data: struct {
 				Token string `json:"token"`
 				User  User   `json:"user"`

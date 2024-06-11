@@ -21,6 +21,7 @@ import (
 
 type User = schemaUsers.User
 type Response = schemaUsers.Response
+type ValidToken = schemaUsers.ValidToken
 
 var (
 	db  *gorm.DB
@@ -48,6 +49,7 @@ func main() {
 
 	// Automigrate the tables
 	db.AutoMigrate(&User{})
+	db.AutoMigrate(&ValidToken{})
 
 	// Initialize the Gin router
 	r := gin.Default()
@@ -66,6 +68,7 @@ func main() {
 	r.DELETE("/users/:uid", userActions.DeleteUser(db))
 
 	r.POST("/login", userActions.Login(db))
+	r.GET("/tokens/:token", userActions.CheckTokenValidity(db))
 
 	// Run the server
 	err := r.Run("0.0.0.0:8080")

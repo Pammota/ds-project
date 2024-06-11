@@ -30,3 +30,7 @@ type UserResponse struct {
 	Email     string `json:"Email"`
 	Roles     string `json:"Roles"`
 }
+
+type ValidToken struct {
+	Token string `json:"token"`
+}

@@ -3,3 +3,5 @@
 /node-device-simulator/node_modules/*
 
 .DS_Store
+
+z_init

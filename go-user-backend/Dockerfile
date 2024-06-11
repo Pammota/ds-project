@@ -7,7 +7,9 @@ WORKDIR /app
 # Copy the Go application source code to the working directory
 COPY . .
 
-RUN go mod tidy
+# Cache Go dependencies
+COPY go.mod go.sum ./
+RUN go mod download
 
 # Build the Go application
 RUN go build -o main

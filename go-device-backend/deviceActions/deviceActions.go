@@ -2,7 +2,9 @@ package deviceActions
 
 import (
 	// standard libs
+	"encoding/json"
 	"net/http"
+	"strings"
 
 	// external libs
 	"github.com/gin-gonic/gin"
@@ -18,6 +20,16 @@ type Response = schemaDevices.Response
 
 func GetDevices(db *gorm.DB) func(c *gin.Context) {
 	return func(c *gin.Context) {
+		// Check token validity
+		authHeader := c.GetHeader("Authorization")
+		token := strings.TrimPrefix(authHeader, "Bearer ")
+		isTokenValid := checkTokenValidity(token)
+		if !isTokenValid {
+			response := &Response{Status: http.StatusUnauthorized, TextStatus: "Invalid token"}
+			c.JSON(http.StatusUnauthorized, response)
+			return
+		}
+
 		var devices []Device
 
 		db.Find(&devices)
@@ -27,6 +39,16 @@ func GetDevices(db *gorm.DB) func(c *gin.Context) {
 
 func CreateDevice(db *gorm.DB) func(c *gin.Context) {
 	return func(c *gin.Context) {
+		// Check token validity
+		authHeader := c.GetHeader("Authorization")
+		token := strings.TrimPrefix(authHeader, "Bearer ")
+		isTokenValid := checkTokenValidity(token)
+		if !isTokenValid {
+			response := &Response{Status: http.StatusUnauthorized, TextStatus: "Invalid token"}
+			c.JSON(http.StatusUnauthorized, response)
+			return
+		}
+
 		var device Device
 		c.BindJSON(&device)
 
@@ -46,6 +68,16 @@ func CreateDevice(db *gorm.DB) func(c *gin.Context) {
 
 func GetDevice(db *gorm.DB) func(c *gin.Context) {
 	return func(c *gin.Context) {
+		// Check token validity
+		authHeader := c.GetHeader("Authorization")
+		token := strings.TrimPrefix(authHeader, "Bearer ")
+		isTokenValid := checkTokenValidity(token)
+		if !isTokenValid {
+			response := &Response{Status: http.StatusUnauthorized, TextStatus: "Invalid token"}
+			c.JSON(http.StatusUnauthorized, response)
+			return
+		}
+
 		DeviceID := c.Params.ByName("did")
 		var device Device
 		err := db.Where("device_id = ?", DeviceID).First(&device).Error
@@ -61,6 +93,16 @@ func GetDevice(db *gorm.DB) func(c *gin.Context) {
 
 func UpdateDevice(db *gorm.DB) func(c *gin.Context) {
 	return func(c *gin.Context) {
+		// Check token validity
+		authHeader := c.GetHeader("Authorization")
+		token := strings.TrimPrefix(authHeader, "Bearer ")
+		isTokenValid := checkTokenValidity(token)
+		if !isTokenValid {
+			response := &Response{Status: http.StatusUnauthorized, TextStatus: "Invalid token"}
+			c.JSON(http.StatusUnauthorized, response)
+			return
+		}
+
 		var device Device
 		DeviceID := c.Params.ByName("did")
 
@@ -81,6 +123,16 @@ func UpdateDevice(db *gorm.DB) func(c *gin.Context) {
 
 func DeleteDevice(db *gorm.DB) func(c *gin.Context) {
 	return func(c *gin.Context) {
+		// Check token validity
+		authHeader := c.GetHeader("Authorization")
+		token := strings.TrimPrefix(authHeader, "Bearer ")
+		isTokenValid := checkTokenValidity(token)
+		if !isTokenValid {
+			response := &Response{Status: http.StatusUnauthorized, TextStatus: "Invalid token"}
+			c.JSON(http.StatusUnauthorized, response)
+			return
+		}
+
 		var device Device
 		DeviceID := c.Params.ByName("did")
 
@@ -95,4 +147,22 @@ func DeleteDevice(db *gorm.DB) func(c *gin.Context) {
 		response := &Response{Status: http.StatusOK, TextStatus: "Device deleted successfully"}
 		c.JSON(http.StatusOK, response)
 	}
+}
+
+func checkTokenValidity(token string) bool {
+	// Make a request to the token validation endpoint
+	resp, err := http.Get("http://go-user-backend:8080/tokens/" + token)
+	if err != nil {
+		return false
+	}
+	defer resp.Body.Close()
+
+	// Parse the response JSON
+	var result map[string]bool
+	err = json.NewDecoder(resp.Body).Decode(&result)
+	if err != nil {
+		return false
+	}
+
+	return result["isTokenValid"]
 }

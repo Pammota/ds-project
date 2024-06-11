@@ -67,7 +67,7 @@ const DevicesTable = ({ devices }: Props) => {
   //   devices.filter((device) => device.DeviceID === id)[0];
 
   const getUserNameFromId = (id: string) =>
-    users?.filter((user) => user.UserID === id)[0]?.Username;
+    users?.length && users?.filter((user) => user.UserID === id)[0]?.Username;
 
   return (
     <div className="flex flex-col gap-4 justify-center items-center">
@@ -77,16 +77,19 @@ const DevicesTable = ({ devices }: Props) => {
           onSubmit={(e) => {
             e.preventDefault();
             if (selectedDevice) {
-              updateDevice(newDevice);
+              updateDevice(newDevice, token ?? "");
               setModalOpen(false);
               setTimeout(() => {
                 fetchDevices();
               }, 200);
             } else {
-              createDevice({
-                DeviceName: newDevice.DeviceName,
-                UserID: newDevice.UserID,
-              });
+              createDevice(
+                {
+                  DeviceName: newDevice.DeviceName,
+                  UserID: newDevice.UserID,
+                },
+                token ?? ""
+              );
               setModalOpen(false);
               setTimeout(() => {
                 fetchDevices();
@@ -131,11 +134,12 @@ const DevicesTable = ({ devices }: Props) => {
               }}
             >
               <option value="">Select a user</option>
-              {users?.map((user: User) => (
-                <option key={user.UserID} value={user.UserID}>
-                  {user.Username}
-                </option>
-              ))}
+              {users?.length &&
+                users?.map((user: User) => (
+                  <option key={user.UserID} value={user.UserID}>
+                    {user.Username}
+                  </option>
+                ))}
             </select>
           </div>
           <div className="flex gap-4">
@@ -156,7 +160,7 @@ const DevicesTable = ({ devices }: Props) => {
               <button
                 type="button"
                 onClick={() => {
-                  deleteDevice(selectedDevice ?? "");
+                  deleteDevice(selectedDevice ?? "", token ?? "");
                   setModalOpen(false);
                   setTimeout(() => {
                     fetchDevices();
@@ -236,35 +240,36 @@ const DevicesTable = ({ devices }: Props) => {
           </tr>
         </thead>
         <tbody className="text-sm font-light">
-          {devices
-            .filter(
-              (device) =>
-                (userObject?.Roles === "admin" && !isChecked) ||
-                device.UserID === userObject?.UserID
-            )
-            .map((device) => (
-              <tr
-                key={device.DeviceID}
-                className="border-b-2 border-gray-400 dark:border-gray-200 hover:bg-blue-300/30 select-none cursor-pointer"
-                onClick={() => {
-                  if (userObject?.Roles === "admin") {
-                    setSelectedDevice(device.DeviceID);
-                    setNewDevice(device);
-                    setModalOpen(true);
-                  }
-                }}
-              >
-                <td className="py-3 px-6 text-left whitespace-nowrap border-x-2 border-gray-400 dark:border-gray-200">
-                  {device.DeviceID}
-                </td>
-                <td className="py-3 px-6 text-left whitespace-nowrap border-x-2 border-gray-400 dark:border-gray-200">
-                  {device.DeviceName}
-                </td>
-                <td className="py-3 px-6 text-left whitespace-nowrap border-x-2 border-gray-400 dark:border-gray-200">
-                  {getUserNameFromId(device.UserID)}
-                </td>
-              </tr>
-            ))}
+          {devices?.length &&
+            devices
+              ?.filter(
+                (device) =>
+                  (userObject?.Roles === "admin" && !isChecked) ||
+                  device.UserID === userObject?.UserID
+              )
+              .map((device) => (
+                <tr
+                  key={device.DeviceID}
+                  className="border-b-2 border-gray-400 dark:border-gray-200 hover:bg-blue-300/30 select-none cursor-pointer"
+                  onClick={() => {
+                    if (userObject?.Roles === "admin") {
+                      setSelectedDevice(device.DeviceID);
+                      setNewDevice(device);
+                      setModalOpen(true);
+                    }
+                  }}
+                >
+                  <td className="py-3 px-6 text-left whitespace-nowrap border-x-2 border-gray-400 dark:border-gray-200">
+                    {device.DeviceID}
+                  </td>
+                  <td className="py-3 px-6 text-left whitespace-nowrap border-x-2 border-gray-400 dark:border-gray-200">
+                    {device.DeviceName}
+                  </td>
+                  <td className="py-3 px-6 text-left whitespace-nowrap border-x-2 border-gray-400 dark:border-gray-200">
+                    {getUserNameFromId(device.UserID)}
+                  </td>
+                </tr>
+              ))}
         </tbody>
       </table>
 

@@ -7,6 +7,7 @@ import {
   DevicePhoneMobileIcon,
   UserCircleIcon,
   RectangleGroupIcon,
+  ChatBubbleLeftEllipsisIcon,
 } from "@heroicons/react/24/solid";
 import { useState } from "react";
 import { useStore, useUserStore } from "@/stores";
@@ -98,6 +99,15 @@ const Navbar = () => {
                   <DevicePhoneMobileIcon className="h-5 w-5 inline-block mr-1 -mt-1" />
                   Devices
                 </Link>
+                {token && (
+                  <Link
+                    href="/chat"
+                    className="hover:bg-white/40 hover:text-white px-3 py-2 rounded-md text-sm font-medium"
+                  >
+                    <ChatBubbleLeftEllipsisIcon className="h-5 w-5 inline-block mr-1 -mt-1" />
+                    Chat
+                  </Link>
+                )}
               </div>
             </div>
           </div>

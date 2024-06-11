@@ -9,6 +9,8 @@ networks:
     driver: bridge
   rabbitmq_net:
     driver: bridge
+  chatnet:
+    driver: bridge
 
 services:
   next-client:
@@ -24,6 +26,7 @@ services:
     networks:
       - usersnet
       - devicesnet
+      - chatnet
     depends_on:
       - go-user-backend
       - go-device-backend
@@ -55,6 +58,7 @@ services:
       PG_PORT: 5434
     networks:
       - devicesnet
+      - usersnet
     ports:
       - "8081:8081"
     depends_on:
@@ -148,7 +152,14 @@ services:
       - 4000:4000
     networks:
       - rabbitmq_net
-
+  
+  go-chat-service:
+    build:
+      context: ./go-chat-service
+    ports:
+      - 8090:8090
+    networks:
+      - chatnet
 
 volumes:
   postgres-user-data:
