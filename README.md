@@ -9,9 +9,9 @@ Because it is one of the projects that has taught me a lot about how to write mi
 
 ### What it do?
 - user authentication and management (no 3rd party auth providers used)
-- device and measurement management and simulation
-- WebSocket-based chatting system
-- next.js powered web app for crud and chat client
+- device and measurement management and simulation (CRUD + DB persistence + security)
+- WebSocket-based live-chatting system
+- Next.js powered web app for crud and chat client
 - inter-service communication using RabbitMQ
   
 ### Is it perfect?
