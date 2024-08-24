@@ -16,3 +16,8 @@ Because it is one of the projects that has taught me a lot about how to write mi
   
 ### Is it perfect?
 Far from it. Being the first time I've _rolled_ my own proper auth I've made some security mistakes. But hey, it works!
+
+
+#### Running the project
+One command required:
+`docker compose up --build`
